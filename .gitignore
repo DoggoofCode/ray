@@ -1,2 +1,5 @@
 /target
 /frames
+*.mp4
+*.ppm
+.DS_Store
