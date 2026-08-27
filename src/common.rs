@@ -48,8 +48,18 @@ impl Color {
 #[derive(Debug, Clone, Copy)]
 pub struct Splat {
     pub position: Vec3,
-    pub scale: Mat3,
+    pub sigma_inv: Mat3,
     pub color: fn(Angle) -> Vec3,
+}
+
+impl Splat {
+    pub fn new(position: Vec3, covariance_mat: Mat3, color: fn(Angle) -> Vec3) -> Self {
+        Splat {
+            position,
+            sigma_inv: (covariance_mat.inverse()),
+            color,
+        }
+    }
 }
 
 impl ScreenRGB {

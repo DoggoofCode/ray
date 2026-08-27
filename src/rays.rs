@@ -57,8 +57,8 @@ impl Ray {
         let r = self.direction;
         let d = self.origin - splat.position;
 
-        let sigma_inv_d = splat.scale * d;
-        let sigma_inv_r = splat.scale * r;
+        let sigma_inv_d = splat.sigma_inv * d;
+        let sigma_inv_r = splat.sigma_inv * r;
 
         let a = r.dot(sigma_inv_r);
         let b = r.dot(sigma_inv_d);

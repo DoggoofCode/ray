@@ -2,7 +2,7 @@ mod rays;
 
 use std::f32::consts::{PI, TAU};
 
-use glam::{Mat3, Vec3};
+use glam::{Mat3, Vec3, mat3};
 use libm::{cosf, fabsf, sinf};
 
 use crate::common::{Angle, Camera, Node, Splat};
@@ -11,24 +11,28 @@ mod common;
 
 fn main() {
     let mut cam = Camera::new(
-        400,
-        400,
+        200,
+        200,
         0.5,
         Node::new(Vec3::new(0., 0., 0.), Angle::new(0.0, 0.0)),
     );
 
     let splats = vec![
-        Splat {
-            position: Vec3::new(15., 0., 0.),
-            scale: Mat3::IDENTITY,
-            color: |c: Angle| -> Vec3 {
+        Splat::new(
+            Vec3::new(15., 0., 0.),
+            mat3(
+                Vec3::new(4., 0., 0.),
+                Vec3::new(0., 4., 0.),
+                Vec3::new(0., 0., 4.),
+            ),
+            |c: Angle| -> Vec3 {
                 let mod_theta = fabsf(c.theta) % TAU;
                 Vec3::new(0., 1. - mod_theta / TAU, mod_theta / TAU)
             },
-        },
+        ),
         Splat {
             position: Vec3::new(10., 0., 0.),
-            scale: Mat3::IDENTITY,
+            sigma_inv: Mat3::IDENTITY,
             color: |c: Angle| -> Vec3 {
                 let mod_theta = fabsf(c.theta) % TAU;
                 Vec3::new(1. - mod_theta / TAU, mod_theta / TAU, 0.)
