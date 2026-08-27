@@ -9,6 +9,8 @@ use crate::common::{Angle, Camera, Node, Splat};
 
 mod common;
 
+mod erfc;
+
 fn main() {
     let mut cam = Camera::new(
         200,
@@ -41,7 +43,7 @@ fn main() {
     ];
 
     let mut percentage: f32;
-    let frames = 48;
+    let frames = 4;
     for index in 0..frames {
         percentage = index as f32 / frames as f32;
         cam.node.angle = Angle::new(percentage * TAU, -0.56);

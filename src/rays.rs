@@ -1,8 +1,11 @@
 use std::f32::consts::PI;
 
-use crate::common::{Angle, Camera, Color, Splat};
+use crate::{
+    common::{Angle, Camera, Color, Splat},
+    erfc::Erfc,
+};
 use glam::Vec3;
-use libm::{erfcf, expf, sqrtf};
+use libm::{expf, sqrtf};
 
 #[derive(Debug, Clone)]
 pub struct Ray {
@@ -67,7 +70,7 @@ impl Ray {
     }
 
     // Order: [3, 0, 1, 2] => 3 is closest, 0 is second, etc. etc.
-    pub fn render_gaussian(&self, splats: &[Splat]) -> Color {
+    pub fn render_gaussian(&self, splats: &[Splat], erfc: &Erfc) -> Color {
         let mut t = 1.;
         let mut pixel = Vec3::ZERO;
         let mut integrated_density;
@@ -102,8 +105,9 @@ impl Ray {
             let gsplat = splats[splat_index as usize];
             // println!("{:?}, {:?}", gsplat, order);
             let Abc { a, b, c } = abc_values[splat_index as usize];
-            integrated_density =
-                sqrtf(PI / (2. * a)) * expf(-0.5 * (c - (b * b / a))) * erfcf(b / sqrtf(2. * a));
+            integrated_density = sqrtf(PI / (2. * a))
+                * expf(-0.5 * (c - (b * b / a)))
+                * erfc.eval(b / sqrtf(2. * a));
             let alpha = 1. - expf(-integrated_density);
 
             pixel += t * alpha * (gsplat.color)(Angle::from_vec(self.direction));

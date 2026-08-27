@@ -3,3 +3,4 @@
 *.mp4
 *.ppm
 .DS_Store
+flamegraphs/

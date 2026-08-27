@@ -3,7 +3,7 @@ use std::io::Write;
 
 use glam::{Mat3, Vec3};
 
-use crate::rays::Ray;
+use crate::{erfc::Erfc, rays::Ray};
 
 #[derive(Debug)]
 // All cameras have a screen of 1m
@@ -103,6 +103,7 @@ impl Camera {
         let mut height;
         let mut order: Vec<u16> = Vec::with_capacity(splats.len());
         let mut distance: Vec<u16> = Vec::with_capacity(splats.len());
+        let erfc_compiler: Erfc = Erfc::new();
 
         let mut r: Ray;
         for h in 0..self.height {
@@ -112,7 +113,7 @@ impl Camera {
                 height = (-2. * (h as f32) / (self.height as f32)) + 1.;
                 r = Ray::from_camera(self, [width, height]);
                 self.screen[h as usize][w as usize] =
-                    ScreenRGB::from_color(r.render_gaussian(splats));
+                    ScreenRGB::from_color(r.render_gaussian(splats, &erfc_compiler));
                 order.clear();
                 distance.clear();
             }

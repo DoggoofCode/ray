@@ -3,6 +3,9 @@ name = "ray"
 version = "0.1.0"
 edition = "2024"
 
+[profile.release]
+debug = true
+
 [dependencies]
 glam = "0.33.5"
 libm = "0.2.16"
