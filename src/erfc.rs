@@ -38,6 +38,12 @@ impl Erfc {
     }
 
     pub fn eval(&self, x: f32) -> f32 {
+        if x > 2.3 {
+            return 0.;
+        }
+        if x < -2.3 {
+            return 2.;
+        }
         let mut result = 0.0;
 
         // Horner's method
