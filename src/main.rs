@@ -13,8 +13,8 @@ mod fastfunclib;
 
 fn main() {
     let mut cam = Camera::new(
-        200,
-        200,
+        800,
+        800,
         0.5,
         Node::new(Vec3::new(0., 0., 0.), Angle::new(0.0, 0.0)),
     );
@@ -43,7 +43,7 @@ fn main() {
     ];
 
     let mut percentage: f32;
-    let frames = 4;
+    let frames = 48;
     for index in 0..frames {
         percentage = index as f32 / frames as f32;
         cam.node.angle = Angle::new(percentage * TAU, -0.56);
@@ -52,11 +52,6 @@ fn main() {
             12.5 * sinf(TAU * percentage + PI),
             8.,
         );
-        println!(
-            "Camera Position: {:?}: {:?}",
-            cam.node.position, cam.node.angle
-        );
-        println!("Starting with {index}");
         cam.render(&splats);
         cam.write(&index).unwrap();
         println!("Completed with {index}");

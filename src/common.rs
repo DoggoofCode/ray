@@ -106,7 +106,6 @@ impl Camera {
 
         let mut r: Ray;
         for h in 0..self.height {
-            print!("Rendering row {h}/{}\r", self.height);
             for w in 0..self.width {
                 width = (2. * (w as f32) / (self.width as f32)) - 1.;
                 height = (-2. * (h as f32) / (self.height as f32)) + 1.;
@@ -132,7 +131,7 @@ impl Camera {
 
         let header = format!("P6\n{} {}\n255\n", self.width, self.height);
 
-        let frame_str = format!("bframes/frame{:04}.ppm", &frame);
+        let frame_str = format!("frames/frame{:04}.ppm", &frame);
         let mut file = File::create(frame_str)?;
         file.write_all(header.as_bytes())?;
         let bytes = unsafe {
