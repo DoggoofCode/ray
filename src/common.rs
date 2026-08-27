@@ -1,9 +1,9 @@
-use std::fs::File;
-use std::io::Write;
-
 use glam::{Mat3, Vec3};
 
-use crate::rays::Ray;
+use crate::fastfunclib::Expf;
+use crate::{fastfunclib::Erfc, rays::Ray};
+
+use crate::rays::Abc;
 
 #[derive(Debug)]
 // All cameras have a screen of 1m
@@ -11,7 +11,7 @@ pub struct Camera {
     pub width: u32,
     pub height: u32,
     pub focal_distance: f32,
-    pub screen: Vec<Vec<ScreenRGB>>,
+    pub screen: Vec<ScreenRGB>,
     pub node: Node,
 }
 
@@ -21,6 +21,7 @@ pub struct Node {
     pub angle: Angle,
 }
 
+#[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct ScreenRGB {
     pub r: u8,
@@ -63,10 +64,6 @@ impl Splat {
 }
 
 impl ScreenRGB {
-    pub fn new(r: u8, g: u8, b: u8) -> Self {
-        ScreenRGB { r, g, b }
-    }
-
     pub fn from_color(color: Color) -> Self {
         ScreenRGB {
             r: (color.r * 255.) as u8,
@@ -84,7 +81,7 @@ impl Node {
 
 impl Camera {
     pub fn new(width: u32, height: u32, focal_distance: f32, node: Node) -> Self {
-        let screen = vec![vec![ScreenRGB::new(0, 0, 0); width as usize]; height as usize];
+        let screen = vec![ScreenRGB { r: 0, g: 0, b: 0 }; (height * width) as usize];
         Camera {
             width,
             height,
@@ -102,17 +99,26 @@ impl Camera {
         let mut width;
         let mut height;
         let mut order: Vec<u16> = Vec::with_capacity(splats.len());
-        let mut distance: Vec<u16> = Vec::with_capacity(splats.len());
+        let mut distance: Vec<f32> = Vec::with_capacity(splats.len());
+        let erfc_compiler: Erfc = Erfc::new();
+        let expf_compiler: Expf = Expf::new();
+        let mut abc_values: Vec<Abc> = Vec::with_capacity(splats.len());
 
         let mut r: Ray;
         for h in 0..self.height {
-            print!("Rendering row {h}/{}\r", self.height);
             for w in 0..self.width {
                 width = (2. * (w as f32) / (self.width as f32)) - 1.;
                 height = (-2. * (h as f32) / (self.height as f32)) + 1.;
                 r = Ray::from_camera(self, [width, height]);
-                self.screen[h as usize][w as usize] =
-                    ScreenRGB::from_color(r.render_gaussian(splats));
+                self.screen[(h * self.height + w) as usize] =
+                    ScreenRGB::from_color(r.render_gaussian(
+                        splats,
+                        &erfc_compiler,
+                        &expf_compiler,
+                        &mut abc_values,
+                        &mut order,
+                        &mut distance,
+                    ));
                 order.clear();
                 distance.clear();
             }
@@ -120,20 +126,20 @@ impl Camera {
     }
 
     pub fn write(&self, frame: &usize) -> std::io::Result<()> {
+        use std::fs::File;
+        use std::io::Write;
+
+        let header = format!("P6\n{} {}\n255\n", self.width, self.height);
+
         let frame_str = format!("frames/frame{:04}.ppm", &frame);
         let mut file = File::create(frame_str)?;
-        writeln!(file, "P3")?;
-        writeln!(file, "{} {}\n255", self.width, self.height)?;
-        for h in 0..self.height {
-            for w in 0..self.width {
-                let pixel_value = self.screen[h as usize][w as usize];
-                writeln!(
-                    file,
-                    "{} {} {}",
-                    pixel_value.r, pixel_value.g, pixel_value.b
-                )?;
-            }
-        }
+        file.write_all(header.as_bytes())?;
+        let bytes = unsafe {
+            std::slice::from_raw_parts(self.screen.as_ptr() as *const u8, self.screen.len() * 3)
+        };
+
+        file.write_all(bytes)?;
+
         Ok(())
     }
 }

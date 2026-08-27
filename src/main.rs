@@ -9,10 +9,12 @@ use crate::common::{Angle, Camera, Node, Splat};
 
 mod common;
 
+mod fastfunclib;
+
 fn main() {
     let mut cam = Camera::new(
-        200,
-        200,
+        800,
+        800,
         0.5,
         Node::new(Vec3::new(0., 0., 0.), Angle::new(0.0, 0.0)),
     );
@@ -50,11 +52,6 @@ fn main() {
             12.5 * sinf(TAU * percentage + PI),
             8.,
         );
-        println!(
-            "Camera Position: {:?}: {:?}",
-            cam.node.position, cam.node.angle
-        );
-        println!("Starting with {index}");
         cam.render(&splats);
         cam.write(&index).unwrap();
         println!("Completed with {index}");

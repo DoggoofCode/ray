@@ -1,8 +1,11 @@
 use std::f32::consts::PI;
 
-use crate::common::{Angle, Camera, Color, Splat};
+use crate::{
+    common::{Angle, Camera, Color, Splat},
+    fastfunclib::{Erfc, Expf},
+};
 use glam::Vec3;
-use libm::{erfcf, expf, sqrtf};
+use libm::sqrtf;
 
 #[derive(Debug, Clone)]
 pub struct Ray {
@@ -10,16 +13,10 @@ pub struct Ray {
     pub direction: Vec3,
 }
 
-struct Abc {
-    a: f32,
-    b: f32,
-    c: f32,
-}
-
-impl Abc {
-    fn new(a: f32, b: f32, c: f32) -> Self {
-        Abc { a, b, c }
-    }
+pub struct Abc {
+    pub a: f32,
+    pub b: f32,
+    pub c: f32,
 }
 
 impl Ray {
@@ -63,24 +60,28 @@ impl Ray {
         let a = r.dot(sigma_inv_r);
         let b = r.dot(sigma_inv_d);
         let c = d.dot(sigma_inv_d);
-        Abc::new(a, b, c)
+        Abc { a, b, c }
     }
 
     // Order: [3, 0, 1, 2] => 3 is closest, 0 is second, etc. etc.
-    pub fn render_gaussian(&self, splats: &[Splat]) -> Color {
+    pub fn render_gaussian(
+        &self,
+        splats: &[Splat],
+        erfc: &Erfc,
+        expf: &Expf,
+        abc_values: &mut Vec<Abc>,
+        order: &mut Vec<u16>,
+        distance: &mut Vec<f32>,
+    ) -> Color {
         let mut t = 1.;
         let mut pixel = Vec3::ZERO;
         let mut integrated_density;
-        // Calculate A, B, Cs
-        let mut abc_values: Vec<Abc> = Vec::with_capacity(splats.len());
 
         for splat in splats.iter() {
             abc_values.push(self.gaussian_coefficients(splat));
         }
 
         // Calculate depth
-        let mut order: Vec<u16> = Vec::with_capacity(splats.len());
-        let mut distance: Vec<f32> = Vec::with_capacity(splats.len());
 
         for (splat_index, Abc { a, b, .. }) in abc_values.iter().enumerate() {
             let t_star = -b / a;
@@ -98,13 +99,14 @@ impl Ray {
         }
         // println!("{order:?} {distance:?}");
 
-        for splat_index in order {
-            let gsplat = splats[splat_index as usize];
+        for splat_index in order.iter() {
+            let gsplat = splats[(*splat_index) as usize];
             // println!("{:?}, {:?}", gsplat, order);
-            let Abc { a, b, c } = abc_values[splat_index as usize];
-            integrated_density =
-                sqrtf(PI / (2. * a)) * expf(-0.5 * (c - (b * b / a))) * erfcf(b / sqrtf(2. * a));
-            let alpha = 1. - expf(-integrated_density);
+            let Abc { a, b, c } = abc_values[(*splat_index) as usize];
+            integrated_density = sqrtf(PI / (2. * a))
+                * expf.eval(-0.5 * (c - (b * b / a)))
+                * erfc.eval(b / sqrtf(2. * a));
+            let alpha = 1. - expf.eval(-integrated_density);
 
             pixel += t * alpha * (gsplat.color)(Angle::from_vec(self.direction));
 
@@ -112,6 +114,9 @@ impl Ray {
             // println!("{:?}, {t}", pixel)
         }
 
+        abc_values.clear();
+        order.clear();
+        distance.clear();
         Color::from_vec(pixel)
     }
 }
