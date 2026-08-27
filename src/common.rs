@@ -1,6 +1,9 @@
 use glam::{Mat3, Vec3};
 
-use crate::{erfc::Erfc, rays::Ray};
+use crate::fastfunclib::Expf;
+use crate::{fastfunclib::Erfc, rays::Ray};
+
+use crate::rays::Abc;
 
 #[derive(Debug)]
 // All cameras have a screen of 1m
@@ -96,8 +99,10 @@ impl Camera {
         let mut width;
         let mut height;
         let mut order: Vec<u16> = Vec::with_capacity(splats.len());
-        let mut distance: Vec<u16> = Vec::with_capacity(splats.len());
+        let mut distance: Vec<f32> = Vec::with_capacity(splats.len());
         let erfc_compiler: Erfc = Erfc::new();
+        let expf_compiler: Expf = Expf::new();
+        let mut abc_values: Vec<Abc> = Vec::with_capacity(splats.len());
 
         let mut r: Ray;
         for h in 0..self.height {
@@ -107,7 +112,14 @@ impl Camera {
                 height = (-2. * (h as f32) / (self.height as f32)) + 1.;
                 r = Ray::from_camera(self, [width, height]);
                 self.screen[(h * self.height + w) as usize] =
-                    ScreenRGB::from_color(r.render_gaussian(splats, &erfc_compiler));
+                    ScreenRGB::from_color(r.render_gaussian(
+                        splats,
+                        &erfc_compiler,
+                        &expf_compiler,
+                        &mut abc_values,
+                        &mut order,
+                        &mut distance,
+                    ));
                 order.clear();
                 distance.clear();
             }

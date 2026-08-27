@@ -9,7 +9,7 @@ use crate::common::{Angle, Camera, Node, Splat};
 
 mod common;
 
-mod erfc;
+mod fastfunclib;
 
 fn main() {
     let mut cam = Camera::new(

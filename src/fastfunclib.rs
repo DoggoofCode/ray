@@ -54,3 +54,47 @@ impl Erfc {
         result
     }
 }
+
+pub struct Expf {
+    pub coeffs: Vec<f32>,
+}
+
+impl Expf {
+    fn generate_coeffs(&mut self, degree: usize) {
+        // let mut coeffs = vec![0.0; degree + 1];
+
+        let mut factorial = 1.0;
+
+        for n in 0.. {
+            if n > degree - 1 {
+                break;
+            }
+
+            if n > 0 {
+                factorial *= n as f32;
+            }
+            self.coeffs[n] = 1. / factorial
+        }
+    }
+
+    pub fn new() -> Self {
+        let coeffs: Vec<f32> = vec![0.; 30];
+        let mut v = Expf { coeffs };
+        v.generate_coeffs(30);
+        v
+    }
+
+    pub fn eval(&self, x: f32) -> f32 {
+        if !(-3. ..=3.).contains(&x) {
+            return libm::expf(x);
+        }
+        let mut result = 0.0;
+
+        // Horner's method
+        for &coeff in self.coeffs.iter().rev() {
+            result = result * x + coeff;
+        }
+
+        result
+    }
+}
