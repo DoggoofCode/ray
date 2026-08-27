@@ -8,20 +8,46 @@ mod common;
 
 fn main() {
     let mut cam = Camera::new(
-        800,
-        600,
-        1.,
-        Node::new(Vec3::new(0., 0., 0.), Angle::new(0.0, 0.0)),
+        400,
+        400,
+        0.7,
+        Node::new(Vec3::new(0., 0., 2.), Angle::new(0.0, 0.0)),
     );
 
-    let splats = vec![Splat {
-        position: Vec3::new(15., 0., 0.),
-        scale: Mat3::IDENTITY,
-        color: |_c| Vec3::new(1., 0., 0.),
-    }];
+    let mut splats = vec![
+        Splat {
+            position: Vec3::new(10., 0., 0.),
+            scale: Mat3::IDENTITY,
+            color: |_c| Vec3::new(1., 0., 0.),
+        },
+        Splat {
+            position: Vec3::new(15., 0., 0.),
+            scale: Mat3::IDENTITY,
+            color: |_c| Vec3::new(0., 1., 0.),
+        },
+    ];
 
-    cam.render(splats);
-    cam.write().unwrap();
+    // let splats2 = vec![
+    //     Splat {
+    //         position: Vec3::new(10., 0., 0.),
+    //         scale: Mat3::IDENTITY,
+    //         color: |_c| Vec3::new(0., 1., 0.),
+    //     },
+    //     Splat {
+    //         position: Vec3::new(15., 0., 0.),
+    //         scale: Mat3::IDENTITY,
+    //         color: |_c| Vec3::new(1., 0., 0.),
+    //     },
+    // ];
+
+    for index in 0..8 {
+        println!("Starting with {index}");
+        // cam.node.position += Vec3::Y * (10. / 24.);
+        cam.render(&splats);
+        cam.write(&index).unwrap();
+        println!("Completed with {index}");
+        splats[0].position += 0.5 * Vec3::Z;
+    }
 
     // println!("{cam:?}");
     // println!("{:?}", cam.node.angle.to_vec());
