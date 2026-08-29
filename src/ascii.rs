@@ -7,7 +7,7 @@ use crossterm::{
     terminal::{self, Clear, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
-use crate::common::{Camera, ScreenRGB};
+use crate::common::Camera;
 
 fn push_u8(buf: &mut Vec<u8>, n: u8) {
     if n >= 100 {
@@ -22,7 +22,18 @@ fn push_u8(buf: &mut Vec<u8>, n: u8) {
     }
 }
 
-fn push_amp(buf: &mut Vec<u8>, rgb: (u8, u8, u8)) {
+fn push_foreground(buf: &mut Vec<u8>, rgb: (u8, u8, u8)) {
+    buf.extend_from_slice(b"\x1b[38;2;");
+    push_u8(buf, rgb.0);
+    buf.push(b';');
+    push_u8(buf, rgb.1);
+    buf.push(b';');
+    push_u8(buf, rgb.2);
+    buf.push(b'm');
+    buf.extend_from_slice("▀".as_bytes());
+}
+
+fn push_background(buf: &mut Vec<u8>, rgb: (u8, u8, u8)) {
     buf.extend_from_slice(b"\x1b[48;2;");
     push_u8(buf, rgb.0);
     buf.push(b';');
@@ -30,11 +41,11 @@ fn push_amp(buf: &mut Vec<u8>, rgb: (u8, u8, u8)) {
     buf.push(b';');
     push_u8(buf, rgb.2);
     buf.push(b'm');
-    buf.push(b' ');
 }
 
 pub fn render(virtual_screen: &Camera) -> std::io::Result<()> {
-    let (width, height) = crossterm::terminal::size()?;
+    let (width, mut height) = crossterm::terminal::size()?;
+    height *= 2;
     let virtual_aspect_ratio = virtual_screen.width as f32 / virtual_screen.height as f32;
     let aspect_ratio = width as f32 / height as f32;
 
@@ -54,34 +65,46 @@ pub fn render(virtual_screen: &Camera) -> std::io::Result<()> {
         println!("{scale_ratio}");
     }
     let kernel_size: u16 = aspect_ratio as u16;
-    println!("Real: {width} {height} 800, 800");
-
-    // let real_image_width = 12;
-    // let real_image_height = 12;
-
-    println!("Real Image {} {}", real_image_height, real_image_width);
 
     let mut image_buffer: Vec<u8> =
         Vec::with_capacity(real_image_height as usize * real_image_width as usize * 16);
-    for image_height in 0..real_image_height as u16 {
+    for image_height in (0..real_image_height as u16).step_by(2) {
         for image_width in 0..real_image_width as u16 {
-            let (mut r, mut g, mut b): (u16, u16, u16) = (0, 0, 0);
+            let (mut upper_r, mut upper_g, mut upper_b): (u16, u16, u16) = (0, 0, 0);
+            let (mut lower_r, mut lower_g, mut lower_b): (u16, u16, u16) = (0, 0, 0);
             for kernel_x in 0..kernel_size {
                 for kernel_y in 0..kernel_size {
-                    let color = virtual_screen.screen[virtual_screen.width as usize
+                    let upper_color = virtual_screen.screen[virtual_screen.width as usize
                         * ((image_height * scale_ratio as u16) + kernel_y) as usize
                         + (image_width * scale_ratio as u16) as usize
                         + kernel_x as usize];
-                    r += color.r as u16;
-                    g += color.g as u16;
-                    b += color.b as u16;
+                    upper_r += upper_color.r as u16;
+                    upper_g += upper_color.g as u16;
+                    upper_b += upper_color.b as u16;
+                    let lower_color = virtual_screen.screen[virtual_screen.width as usize
+                        * (((image_height + 1) * scale_ratio as u16) + kernel_y) as usize
+                        + (image_width * scale_ratio as u16) as usize
+                        + kernel_x as usize];
+                    lower_r += lower_color.r as u16;
+                    lower_g += lower_color.g as u16;
+                    lower_b += lower_color.b as u16;
                 }
             }
             let k_squared = kernel_size * kernel_size;
-            r /= k_squared;
-            g /= k_squared;
-            b /= k_squared;
-            push_amp(&mut image_buffer, (r as u8, g as u8, b as u8));
+            upper_r /= k_squared;
+            upper_g /= k_squared;
+            upper_b /= k_squared;
+            lower_r /= k_squared;
+            lower_g /= k_squared;
+            lower_b /= k_squared;
+            push_background(
+                &mut image_buffer,
+                (lower_r as u8, lower_g as u8, lower_b as u8),
+            );
+            push_foreground(
+                &mut image_buffer,
+                (upper_r as u8, upper_g as u8, upper_b as u8),
+            );
         }
         image_buffer.extend_from_slice(b"\x1b[0m");
         image_buffer.extend_from_slice(b"\n\r");
