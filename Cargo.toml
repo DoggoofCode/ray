@@ -7,5 +7,6 @@ edition = "2024"
 debug = true
 
 [dependencies]
+crossterm = "0.29.0"
 glam = "0.33.5"
 libm = "0.2.16"
