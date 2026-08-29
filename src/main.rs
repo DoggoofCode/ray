@@ -47,8 +47,9 @@ fn main() {
     ];
 
     if env::args().len() > 1 {
-        cam.render(&splats);
-        render(&cam).unwrap();
+        // cam.render(&splats);
+        render(&mut cam, &splats).unwrap();
+        cam.write(&(6969)).unwrap();
     } else {
         // Non-realtime ppm rendering
         let mut percentage: f32;
